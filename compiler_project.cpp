@@ -1,9 +1,4 @@
-#include <iostream>
-#include <string>
-#include <vector>
-#include <map>
-#include <cctype>
-#include <stdexcept>
+#include <bits/stdc++.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -11,9 +6,8 @@
 
 using namespace std;
 
-// ============================================================
+
 // TOKENS
-// ============================================================
 
 const string int_      = "INT_TYPE";       // সংখ্যা
 const string bool_     = "BOOL_TYPE";      // সত্যতা
@@ -25,6 +19,8 @@ const string ptr       = "PRINT";          // দেখাও
 const string if_       = "IF";             // যদি
 const string else_     = "ELSE";           // নাহলে
 const string while_    = "WHILE";          // যতক্ষণ
+const string and_      = "AND";            // এবং
+const string or_       = "OR";             // অথবা
 
 const string assign = "ASSIGNMENT";        // :
 const string pls    = "PLUS";              // +
@@ -48,9 +44,9 @@ const string newline_ = "NEWLINE";
 const string eof = "EOF";
 
 
-// ============================================================
+
 // TOKEN CLASS
-// ============================================================
+
 
 class Token {
 public:
@@ -74,10 +70,9 @@ void printToken(const Token& t) {
 }
 
 
-// ============================================================
+
 // LEXER
-// get_char() -> advance() -> tokenize()
-// ============================================================
+
 
 class Lexer {
 private:
@@ -117,7 +112,7 @@ public:
         }
     }
 
-    // Bangla text is UTF-8. A Bangla character uses bytes >= 128.
+  
     bool is_word_start(char c) {
         unsigned char u = (unsigned char)c;
         return isalpha(u) || c == '_' || u >= 128;
@@ -136,12 +131,12 @@ public:
                 break;
             }
 
-            // Space/tab are ignored.
+            // Space/tab 
             else if (c == ' ' || c == '\t' || c == '\r') {
                 advance();
             }
 
-            // Keep newline token because project error recovery needs EOL.
+            // Keep newline 
             else if (c == '\n') {
                 tokens.push_back(Token(newline_, "\\n", line));
                 advance();
@@ -186,6 +181,12 @@ public:
                 else if (word == "যতক্ষণ") {
                     tokens.push_back(Token(while_, word, line));
                 }
+                else if (word == "এবং") {
+                    tokens.push_back(Token(and_, word, line));
+                }
+                else if (word == "অথবা") {
+                    tokens.push_back(Token(or_, word, line));
+                }
                 else if (word == "সত্য") {
                     tokens.push_back(Token(true_lit, word, line));
                 }
@@ -197,7 +198,7 @@ public:
                 }
             }
 
-            // Comment: // until end of line
+            // Comment
             else if (c == '/' && peek_char() == '/') {
                 while (get_char() != '\n' && get_char() != '\0') {
                     advance();
@@ -292,9 +293,9 @@ public:
 };
 
 
-// ============================================================
+
 //  AST NODE
-// ============================================================
+
 
 class ASTNode {
 public:
@@ -326,6 +327,12 @@ ASTNode BinOpNode(ASTNode left, string op, ASTNode right, int line) {
     ASTNode node("BinOpNode", op, line);
     node.children.push_back(left);
     node.children.push_back(right);
+    return node;
+}
+
+ASTNode UnaryOpNode(string op, ASTNode operand, int line) {
+    ASTNode node("UnaryOpNode", op, line);
+    node.children.push_back(operand);
     return node;
 }
 
@@ -369,9 +376,8 @@ void tree(const ASTNode& node, int level = 0) {
 }
 
 
-// ============================================================
 // PARSER
-// ============================================================
+
 
 class Parser {
 private:
@@ -419,7 +425,7 @@ public:
     }
 
     void synchronize() {
-        // recover at ';' or end of line.
+      
         while (currentTok().type_ != eof) {
             if (currentTok().type_ == semi || currentTok().type_ == newline_) {
                 advance();
@@ -456,6 +462,11 @@ public:
             expect(rpr, "expected ')' ");
             return node;
         }
+        else if (tok.type_ == mns) {
+            advance();
+            ASTNode operand = factor();
+            return UnaryOpNode("-", operand, tok.line);
+    }           
 
         throw runtime_error(
             "ParserError at line " + to_string(tok.line) +
@@ -493,8 +504,8 @@ public:
         return left;
     }
 
-    // expression --> expr [ comparison_operator expr ]
-    ASTNode expression() {
+    // comparison --> expr [ comparison_operator expr ]
+    ASTNode comparison() {
         ASTNode left = expr();
 
         string t = currentTok().type_;
@@ -503,6 +514,41 @@ public:
             advance();
 
             ASTNode right = expr();
+            left = BinOpNode(left, op.value, right, op.line);
+        }
+
+        return left;
+    }
+
+    // logical_not --> comparison
+    ASTNode logical_not() {
+        return comparison();
+    }
+
+    // logical_and --> logical_not { এবং logical_not }
+    ASTNode logical_and() {
+        ASTNode left = logical_not();
+
+        while (currentTok().type_ == and_) {
+            Token op = currentTok();
+            advance();
+
+            ASTNode right = logical_not();
+            left = BinOpNode(left, op.value, right, op.line);
+        }
+
+        return left;
+    }
+
+    // expression --> logical_and { অথবা logical_and }
+    ASTNode expression() {
+        ASTNode left = logical_and();
+
+        while (currentTok().type_ == or_) {
+            Token op = currentTok();
+            advance();
+
+            ASTNode right = logical_and();
             left = BinOpNode(left, op.value, right, op.line);
         }
 
@@ -661,6 +707,10 @@ public:
             catch (runtime_error& e) {
                 errors.push_back(e.what());
                 synchronize();
+
+                if (currentTok().type_ == rbr) {
+                    advance();
+                }
             }
 
             skipSeparators();
@@ -679,10 +729,9 @@ public:
 };
 
 
-// ============================================================
-// SIMPLE TYPE CHECKER
-// Kept separate from Lexer and Parser.
-// ============================================================
+
+// TYPE CHECKER
+
 
 class TypeChecker {
 private:
@@ -836,9 +885,6 @@ public:
 };
 
 
-// ============================================================
-// MAIN
-// ============================================================
 
 int main() {
 #ifdef _WIN32
@@ -847,23 +893,35 @@ int main() {
 #endif
 
     string code = R"(
-সংখ্যা ক : 10;
-সংখ্যা খ : ক + 5 * 2;
-সত্যতা বড় : খ > 15;
-সত্যতা চালাও : সত্য;
+সংখ্যা ক : -5;
+সংখ্যা খ : 2;
 
-দেখাও খ;
+দেখাও ক + খ;
+দেখাও ক - খ;
+দেখাও ক * খ;
+দেখাও ক / খ;
 
-যদি (বড়) {
-    দেখাও খ;
+সত্যতা গ : ক == খ;
+সত্যতা ঘ : ক != খ;
+সত্যতা ঙ : ক < খ;
+সত্যতা চ : ক <= খ;
+সত্যতা ছ : ক > খ;
+সত্যতা জ : ক >= খ;
+
+সত্যতা ঝ : সত্য এবং মিথ্যা;
+সত্যতা ঞ : সত্য অথবা মিথ্যা;
+
+যদি (ক > খ) {
+    দেখাও সত্য;
 }
 নাহলে {
-    দেখাও 0;
+    দেখাও মিথ্যা;
 }
 
-যতক্ষণ (ক < 13) {
-    ক : ক + 1;
+যতক্ষণ (ক > 0) {
+    ক : ক - 1;
 }
+    
 )";
 
     // Lexer
@@ -872,7 +930,6 @@ int main() {
 
     cout << "========== TOKENS ==========" << endl;
     for (Token t : tokens) {
-        // Hide newline tokens only from the screen.
         if (t.type_ != newline_) {
             printToken(t);
         }
