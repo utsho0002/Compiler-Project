@@ -1,0 +1,11 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.exe
+*.docx
+build/
+bin/
+compiler/lex.yy.c
+compiler/parser.tab.c
+compiler/parser.tab.h

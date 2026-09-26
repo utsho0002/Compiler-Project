@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.env
+
+# Generated compiler artifacts
+build/
+bin/
+compiler/lex.yy.c
+compiler/parser.tab.c
+compiler/parser.tab.h
+
+# Generated target programs
+output.py
+tokens.txt
+parse_tree.txt
+semantic.txt
+tac.txt
