@@ -1,0 +1,2232 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Suborno Compiler — Bengali programming language compiler and compiler-stage visualizer.">
+    <title>Suborno Compiler</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #070a0f;
+            --surface: #0d131c;
+            --surface-2: #111925;
+            --surface-3: #162131;
+            --surface-hover: #1b293b;
+            --line: #263448;
+            --line-soft: rgba(148, 163, 184, .12);
+            --text: #f5f7fb;
+            --muted: #929fb0;
+            --muted-2: #69778c;
+            --accent: #f4c45e;
+            --accent-dark: #241a05;
+            --accent-soft: rgba(244, 196, 94, .11);
+            --green: #6ee7a7;
+            --green-soft: rgba(110, 231, 167, .09);
+            --red: #ff6f7d;
+            --red-soft: rgba(255, 111, 125, .09);
+            --radius: 18px;
+            --shadow: 0 30px 85px rgba(0, 0, 0, .34);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 78% -8%, rgba(244,196,94,.075), transparent 28rem),
+                radial-gradient(circle at 10% 26%, rgba(73,111,161,.055), transparent 30rem),
+                linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px),
+                var(--bg);
+            background-size: auto, auto, 36px 36px, 36px 36px, auto;
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button, textarea { font: inherit; }
+        button { color: inherit; }
+        a { color: inherit; text-decoration: none; }
+        .container { width: min(1180px, calc(100% - 36px)); margin: 0 auto; }
+        * { scrollbar-width: thin; scrollbar-color: #344257 transparent; }
+        *::-webkit-scrollbar { width: 10px; height: 10px; }
+        *::-webkit-scrollbar-track { background: transparent; }
+        *::-webkit-scrollbar-thumb { background: #344257; border: 3px solid transparent; border-radius: 999px; background-clip: padding-box; }
+        *::-webkit-scrollbar-thumb:hover { background: #46566e; border: 3px solid transparent; background-clip: padding-box; }
+        :focus-visible { outline: 2px solid rgba(244,196,94,.72); outline-offset: 2px; }
+
+        /* Header */
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            border-bottom: 1px solid var(--line-soft);
+            background: rgba(7, 10, 15, .82);
+            backdrop-filter: blur(18px);
+        }
+        .header-inner {
+            height: 66px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+        }
+        .brand-mark {
+            width: 31px;
+            height: 31px;
+            display: grid;
+            place-items: center;
+            border-radius: 9px;
+            background: linear-gradient(145deg, #ffd97c, var(--accent));
+            color: var(--accent-dark);
+            font-weight: 900;
+            border: 1px solid rgba(255,255,255,.22);
+            box-shadow: 0 10px 28px rgba(244,196,94,.18);
+        }
+        .nav { display: flex; align-items: center; gap: 4px; }
+        .nav a {
+            padding: 8px 11px;
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 650;
+            transition: .16s ease;
+        }
+        .nav a:hover { color: var(--text); background: rgba(255,255,255,.04); }
+
+        /* Shared */
+        main { padding-bottom: 24px; }
+        .section { padding: 52px 0 64px; }
+        .section + .section { border-top: 1px solid var(--line-soft); }
+        .section-heading {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 21px;
+        }
+        .section-heading h1,
+        .section-heading h2 {
+            margin: 0;
+            letter-spacing: -.035em;
+            line-height: 1.1;
+        }
+        .section-heading h1 { font-size: clamp(28px, 4vw, 40px); }
+        .section-heading h2 { font-size: clamp(25px, 3vw, 34px); }
+        .section-subtitle {
+            margin: 7px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        /* Buttons */
+        .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .btn {
+            min-height: 38px;
+            padding: 0 14px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: var(--surface-3);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 800;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+            transition: transform .14s ease, background .14s ease, border-color .14s ease, opacity .14s ease, box-shadow .14s ease;
+        }
+        .btn:hover { transform: translateY(-1px); border-color: #415169; background: var(--surface-hover); box-shadow: 0 8px 22px rgba(0,0,0,.18); }
+        .btn.primary {
+            background: linear-gradient(180deg, #ffd36e, var(--accent));
+            color: var(--accent-dark);
+            border-color: var(--accent);
+            box-shadow: 0 10px 24px rgba(244,196,94,.12);
+        }
+        .btn.primary:hover { background: linear-gradient(180deg, #ffdc82, #f8ca65); border-color: #f8ca65; }
+        .btn.quiet { background: transparent; }
+        .btn:disabled { opacity: .52; cursor: wait; transform: none; }
+
+        /* Main compiler */
+        .workspace {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            transition: border-color .18s ease, box-shadow .18s ease;
+        }
+        .workspace::before {
+            content: "";
+            position: absolute;
+            inset: 0 12% auto;
+            height: 1px;
+            z-index: 2;
+            background: linear-gradient(90deg, transparent, rgba(244,196,94,.45), transparent);
+            pointer-events: none;
+        }
+        .workspace:focus-within {
+            border-color: rgba(244,196,94,.30);
+            box-shadow: 0 32px 95px rgba(0,0,0,.40), 0 0 0 1px rgba(244,196,94,.035);
+        }
+        .workspace-toolbar {
+            min-height: 60px;
+            padding: 10px 12px 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(180deg, #101722, #0d131c);
+        }
+        .workspace-file {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            color: #dfe7f2;
+            font-size: 12px;
+            font-weight: 750;
+        }
+        .workspace-file::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-soft);
+        }
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.08fr) minmax(360px, .92fr);
+            height: 560px;
+            min-height: 0;
+        }
+        .pane {
+            min-width: 0;
+            min-height: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .editor-pane { border-right: 1px solid var(--line); }
+        .pane-header {
+            height: 43px;
+            padding: 0 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 1px solid var(--line-soft);
+            background: var(--surface-2);
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 750;
+            letter-spacing: .02em;
+        }
+        .pane-header strong { color: #dce4ee; font-size: 12px; }
+        .language-pill {
+            padding: 4px 7px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            color: var(--muted-2);
+            font-size: 9px;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+        .editor-body {
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+            display: grid;
+            grid-template-columns: 48px minmax(0, 1fr);
+            overflow: hidden;
+            background: #090f17;
+        }
+        .line-numbers {
+            margin: 0;
+            padding: 18px 10px 18px 0;
+            height: 100%;
+            overflow: hidden;
+            border-right: 1px solid rgba(148, 163, 184, .075);
+            color: #4f5c6c;
+            text-align: right;
+            user-select: none;
+            font: 14px/1.72 Consolas, "Noto Sans Bengali", "Nirmala UI", monospace;
+        }
+        #source {
+            width: 100%;
+            min-width: 0;
+            height: 100%;
+            min-height: 0;
+            max-height: 100%;
+            padding: 18px 20px;
+            resize: none;
+            overflow: auto;
+            border: 0;
+            outline: 0;
+            background: #090f17;
+            color: #e8eef7;
+            caret-color: var(--accent);
+            font: 14px/1.72 Consolas, "Noto Sans Bengali", "Nirmala UI", monospace;
+            tab-size: 4;
+        }
+        #source::selection { background: rgba(244,185,66,.24); }
+
+        .output-pane { background: #090f17; }
+        .output-wrap {
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+            padding: 24px;
+            overflow: auto;
+            overscroll-behavior: contain;
+        }
+        .output-status {
+            min-height: 25px;
+            margin-bottom: 13px;
+            color: var(--muted-2);
+            font-size: 12px;
+            font-weight: 750;
+        }
+        .output-status.busy { color: var(--accent); }
+        .output-status.success { color: var(--green); }
+        .output-status.error { color: var(--red); }
+        .output-headline {
+            display: none;
+            margin: 0 0 12px;
+            font-size: 14px;
+            font-weight: 850;
+            line-height: 1.5;
+        }
+        .output-headline.visible { display: block; }
+        .output-headline.success { color: var(--green); }
+        .output-headline.error { color: var(--red); }
+        .output-body {
+            margin: 0;
+            min-height: 360px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            color: var(--muted);
+            font: 14px/1.68 Consolas, "Noto Sans Bengali", "Nirmala UI", monospace;
+        }
+        .output-body.success { color: var(--green); }
+        .output-body.error-detail { color: #cbd5e1; }
+        .output-placeholder { color: #596678; }
+
+        /* Pipeline */
+        .pipeline-scroll { overflow-x: auto; padding: 3px 2px 10px; scrollbar-width: thin; }
+        .pipeline {
+            min-width: 920px;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 28px;
+        }
+        .stage-card {
+            position: relative;
+            min-height: 91px;
+            padding: 15px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(255,255,255,.015), transparent), var(--surface);
+            text-align: left;
+            cursor: pointer;
+            box-shadow: 0 12px 32px rgba(0,0,0,.10);
+            transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+        }
+        .stage-card:hover { transform: translateY(-3px); border-color: #405069; background: var(--surface-2); box-shadow: 0 18px 38px rgba(0,0,0,.17); }
+        .stage-card.active {
+            border-color: rgba(244,196,94,.68);
+            background: linear-gradient(145deg, rgba(244,196,94,.10), var(--surface));
+            box-shadow: 0 18px 42px rgba(0,0,0,.18), inset 0 0 0 1px rgba(244,196,94,.055);
+        }
+        .stage-card.active::before {
+            content: "";
+            position: absolute;
+            left: 14px;
+            right: 14px;
+            bottom: 0;
+            height: 2px;
+            border-radius: 999px 999px 0 0;
+            background: var(--accent);
+        }
+        .stage-card:not(:last-child)::after {
+            content: "→";
+            position: absolute;
+            right: -21px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #465366;
+            font-size: 17px;
+            font-weight: 800;
+            pointer-events: none;
+        }
+        .stage-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .stage-index {
+            color: var(--muted-2);
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: .08em;
+        }
+        .stage-dot { width: 7px; height: 7px; border-radius: 50%; background: #465366; }
+        .stage-card.done .stage-dot { background: var(--green); box-shadow: 0 0 0 4px var(--green-soft); }
+        .stage-card.failed .stage-dot { background: var(--red); box-shadow: 0 0 0 4px var(--red-soft); }
+        .stage-name { margin-top: 12px; color: #edf3fb; font-size: 13px; font-weight: 850; }
+        .stage-kind { margin-top: 4px; color: var(--muted); font-size: 10px; }
+
+        .stage-panel {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: 250px minmax(0, 1fr);
+            gap: 14px;
+        }
+        .stage-details,
+        .stage-live {
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--surface);
+            box-shadow: 0 18px 46px rgba(0,0,0,.12);
+        }
+        .stage-details { padding: 20px; }
+        .stage-number {
+            color: var(--accent);
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: .11em;
+            text-transform: uppercase;
+        }
+        .stage-details h3 {
+            margin: 7px 0 8px;
+            font-size: 20px;
+            letter-spacing: -.025em;
+        }
+        .stage-description {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.65;
+        }
+        .stage-meta { margin-top: 19px; border-top: 1px solid var(--line-soft); }
+        .stage-meta-row {
+            padding: 10px 0;
+            display: grid;
+            grid-template-columns: 47px 1fr;
+            gap: 10px;
+            border-bottom: 1px solid var(--line-soft);
+            font-size: 11px;
+        }
+        .stage-meta-row:last-child { border-bottom: 0; }
+        .stage-meta-row strong { color: var(--muted-2); font-size: 9px; text-transform: uppercase; letter-spacing: .07em; }
+        .stage-meta-row span { color: #d4dce8; }
+        .stage-live-header {
+            height: 49px;
+            padding: 0 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            border-bottom: 1px solid var(--line);
+            background: var(--surface-2);
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--muted-2);
+            font-size: 9px;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+        .live-indicator::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+        .stage-output {
+            margin: 0;
+            min-height: 360px;
+            max-height: 560px;
+            padding: 18px;
+            overflow: auto;
+            background: #0a0f16;
+            color: #7f8c9e;
+            white-space: pre;
+            font: 12px/1.62 Consolas, "Noto Sans Bengali", "Nirmala UI", monospace;
+        }
+        .stage-output.has-data { color: #b9f5d0; }
+        .stage-output.failed { color: #ff9aa3; }
+
+        /* Stage visualizers */
+        .stage-toolbar {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+        .stage-toolbar[hidden] { display: none !important; }
+        .stage-view-toggle {
+            display: inline-flex;
+            padding: 3px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: #0b1119;
+        }
+        .stage-toggle-btn,
+        .ast-zoom-btn {
+            height: 28px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 800;
+            transition: background .15s ease, color .15s ease, transform .15s ease;
+        }
+        .stage-toggle-btn { padding: 0 10px; }
+        .stage-toggle-btn:hover,
+        .ast-zoom-btn:hover { color: var(--text); background: rgba(255,255,255,.055); }
+        .stage-toggle-btn.active {
+            color: var(--accent-dark);
+            background: var(--accent);
+            box-shadow: 0 5px 14px rgba(244,196,94,.14);
+        }
+        .ast-zoom-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 3px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: #0b1119;
+        }
+        .ast-zoom-controls[hidden] { display: none !important; }
+        .ast-zoom-btn {
+            width: 28px;
+            padding: 0;
+            font-size: 15px;
+            line-height: 1;
+        }
+        .ast-zoom-value {
+            min-width: 43px;
+            color: var(--muted-2);
+            text-align: center;
+            font: 9px/1 Consolas, monospace;
+        }
+        .stage-visual {
+            min-height: 360px;
+            max-height: 560px;
+            overflow: auto;
+            overscroll-behavior: contain;
+            background:
+                radial-gradient(circle at 50% -15%, rgba(244,196,94,.055), transparent 30rem),
+                #090f17;
+        }
+        .stage-visual[hidden] { display: none !important; }
+        .stage-output.visual-hidden { display: none; }
+        .visual-empty {
+            min-height: 360px;
+            display: grid;
+            place-items: center;
+            padding: 48px 20px;
+            color: var(--muted-2);
+            text-align: center;
+            font-size: 12px;
+        }
+
+        /* Token table */
+        .token-table-wrap,
+        .semantic-wrap,
+        .tac-wrap,
+        .code-wrap,
+        .terminal-wrap { padding: 18px; }
+        .visual-table-shell {
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #0b1119;
+            box-shadow: 0 14px 34px rgba(0,0,0,.15);
+        }
+        .visual-table {
+            width: 100%;
+            min-width: 620px;
+            border-collapse: collapse;
+            color: #d9e2ee;
+            font-size: 11px;
+        }
+        .visual-table th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            padding: 11px 14px;
+            border-bottom: 1px solid var(--line);
+            background: #111925;
+            color: #77869a;
+            text-align: left;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        .visual-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(148,163,184,.085);
+            vertical-align: middle;
+            font-family: Consolas, "Noto Sans Bengali", "Nirmala UI", monospace;
+        }
+        .visual-table tbody tr:last-child td { border-bottom: 0; }
+        .visual-table tbody tr { transition: background .14s ease; }
+        .visual-table tbody tr:hover { background: rgba(255,255,255,.025); }
+        .cell-index { width: 58px; color: #5d6c80; }
+        .cell-line { width: 76px; color: #8795a8; }
+        .cell-lexeme { color: #eef3fa; font-weight: 700; }
+        .token-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 0 8px;
+            border: 1px solid #344258;
+            border-radius: 7px;
+            background: #111a27;
+            color: #aebbd0;
+            font: 800 9px/1 Consolas, monospace;
+            letter-spacing: .035em;
+        }
+        .token-badge.keyword { color: #ffd775; border-color: rgba(244,196,94,.28); background: rgba(244,196,94,.07); }
+        .token-badge.identifier { color: #82bfff; border-color: rgba(99,170,255,.28); background: rgba(99,170,255,.07); }
+        .token-badge.literal { color: #7cf0b5; border-color: rgba(110,231,167,.28); background: rgba(110,231,167,.07); }
+        .token-badge.operator { color: #ffb979; border-color: rgba(255,165,88,.28); background: rgba(255,165,88,.07); }
+        .token-badge.symbol { color: #c6a0ff; border-color: rgba(186,131,255,.27); background: rgba(186,131,255,.07); }
+        .token-badge.error { color: #ff9aa3; border-color: rgba(255,111,125,.28); background: rgba(255,111,125,.07); }
+
+        /* Visual AST */
+        .ast-visual {
+            min-height: 520px;
+            overflow: auto;
+            overscroll-behavior: contain;
+            padding: 34px 38px 52px;
+            background:
+                radial-gradient(circle at 50% -12%, rgba(244,196,94,.075), transparent 34rem),
+                linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px),
+                #090f17;
+            background-size: auto, 28px 28px, 28px 28px, auto;
+        }
+        .ast-tree {
+            --ast-zoom: 1;
+            width: max-content;
+            min-width: 100%;
+            display: flex;
+            justify-content: center;
+            transform-origin: top center;
+            zoom: var(--ast-zoom);
+        }
+        .ast-tree ul {
+            position: relative;
+            margin: 0;
+            padding: 30px 0 0;
+            display: flex;
+            justify-content: center;
+        }
+        .ast-tree > ul { padding-top: 0; }
+        .ast-tree li {
+            position: relative;
+            min-width: 138px;
+            padding: 30px 9px 0;
+            list-style: none;
+            text-align: center;
+        }
+        .ast-tree > ul > li { padding-top: 0; }
+        .ast-tree li::before,
+        .ast-tree li::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 30px;
+            border-top: 1px solid #334156;
+        }
+        .ast-tree li::before { right: 50%; }
+        .ast-tree li::after { left: 50%; border-left: 1px solid #334156; }
+        .ast-tree li:only-child::before,
+        .ast-tree li:only-child::after { display: none; }
+        .ast-tree li:only-child { padding-top: 30px; }
+        .ast-tree > ul > li:only-child { padding-top: 0; }
+        .ast-tree li:first-child::before,
+        .ast-tree li:last-child::after { border: 0; }
+        .ast-tree li:last-child::before { border-right: 1px solid #334156; border-radius: 0 8px 0 0; }
+        .ast-tree li:first-child::after { border-radius: 8px 0 0 0; }
+        .ast-tree ul ul::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 0;
+            height: 30px;
+            border-left: 1px solid #334156;
+        }
+        .ast-tree > ul::before { display: none; }
+        .ast-node {
+            position: relative;
+            z-index: 2;
+            min-width: 126px;
+            max-width: 220px;
+            padding: 11px 13px 12px;
+            display: inline-flex;
+            flex-direction: column;
+            gap: 4px;
+            border: 1px solid #2a384d;
+            border-radius: 11px;
+            background: linear-gradient(180deg, #141e2b, #0e1621);
+            box-shadow: 0 10px 28px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.025);
+            cursor: default;
+            transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+        .ast-node:hover { transform: translateY(-3px); border-color: #506078; box-shadow: 0 15px 32px rgba(0,0,0,.32), 0 0 0 1px rgba(255,255,255,.025); }
+        .ast-node-type { color: #dce6f3; font: 800 11px/1.35 Consolas, "Noto Sans Bengali", "Nirmala UI", monospace; overflow-wrap: anywhere; }
+        .ast-node-value { color: #8fa0b6; font: 10px/1.45 Consolas, "Noto Sans Bengali", "Nirmala UI", monospace; overflow-wrap: anywhere; }
+        .ast-node.node-root { border-color: rgba(244,196,94,.64); background: linear-gradient(180deg, rgba(244,196,94,.14), #121821); box-shadow: 0 13px 34px rgba(244,196,94,.08), inset 0 0 0 1px rgba(244,196,94,.05); }
+        .ast-node.node-root .ast-node-type { color: #ffd775; }
+        .ast-node.node-declaration { border-color: rgba(99,170,255,.34); }
+        .ast-node.node-declaration .ast-node-type { color: #82bfff; }
+        .ast-node.node-control { border-color: rgba(186,131,255,.34); }
+        .ast-node.node-control .ast-node-type { color: #c6a0ff; }
+        .ast-node.node-operation { border-color: rgba(255,165,88,.34); }
+        .ast-node.node-operation .ast-node-type { color: #ffb979; }
+        .ast-node.node-output { border-color: rgba(110,231,167,.34); }
+        .ast-node.node-output .ast-node-type { color: #7cf0b5; }
+        .ast-node.node-literal { border-color: rgba(73,211,225,.30); }
+        .ast-node.node-literal .ast-node-type { color: #75dce7; }
+        .ast-node.node-identifier { border-color: rgba(148,163,184,.26); }
+
+        /* Semantic visualizer */
+        .semantic-summary {
+            margin-bottom: 14px;
+            padding: 14px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: linear-gradient(180deg, #101824, #0c131d);
+        }
+        .semantic-summary-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .semantic-status-icon {
+            width: 30px;
+            height: 30px;
+            display: grid;
+            place-items: center;
+            flex: 0 0 auto;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 900;
+        }
+        .semantic-status-icon.success { color: var(--green); background: var(--green-soft); border: 1px solid rgba(110,231,167,.20); }
+        .semantic-status-icon.failed { color: var(--red); background: var(--red-soft); border: 1px solid rgba(255,111,125,.20); }
+        .semantic-summary-title { color: #eef3fa; font-size: 12px; font-weight: 850; }
+        .semantic-summary-sub { margin-top: 2px; color: var(--muted-2); font-size: 10px; }
+        .status-pill {
+            flex: 0 0 auto;
+            padding: 6px 9px;
+            border-radius: 999px;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+        .status-pill.success { color: var(--green); background: var(--green-soft); border: 1px solid rgba(110,231,167,.20); }
+        .status-pill.failed { color: var(--red); background: var(--red-soft); border: 1px solid rgba(255,111,125,.20); }
+        .semantic-errors { margin-bottom: 14px; display: grid; gap: 7px; }
+        .semantic-error {
+            padding: 10px 12px;
+            display: flex;
+            gap: 9px;
+            border: 1px solid rgba(255,111,125,.20);
+            border-radius: 9px;
+            background: rgba(255,111,125,.055);
+            color: #ffb4bb;
+            font: 11px/1.5 Consolas, "Noto Sans Bengali", "Nirmala UI", monospace;
+        }
+        .state-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #b8c4d4;
+            font: 700 10px/1 Consolas, monospace;
+        }
+        .state-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #65758c; }
+        .state-badge.initialized { color: var(--green); }
+        .state-badge.initialized::before { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+        .state-badge.uninitialized { color: #ffbf75; }
+        .state-badge.uninitialized::before { background: #ffb86b; box-shadow: 0 0 0 3px rgba(255,184,107,.08); }
+
+        /* TAC visualizer */
+        .tac-list {
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #0b1119;
+        }
+        .tac-row {
+            min-height: 43px;
+            display: grid;
+            grid-template-columns: 54px minmax(0,1fr);
+            align-items: stretch;
+            border-bottom: 1px solid rgba(148,163,184,.085);
+            transition: background .14s ease;
+        }
+        .tac-row:last-child { border-bottom: 0; }
+        .tac-row:hover { background: rgba(255,255,255,.025); }
+        .tac-index {
+            display: grid;
+            place-items: center;
+            border-right: 1px solid rgba(148,163,184,.085);
+            color: #59687c;
+            background: rgba(255,255,255,.012);
+            font: 800 10px/1 Consolas, monospace;
+        }
+        .tac-code {
+            padding: 12px 14px;
+            color: #dbe5f2;
+            font: 12px/1.55 Consolas, "Noto Sans Bengali", "Nirmala UI", monospace;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+        .tac-temp { color: #82bfff; font-weight: 800; }
+        .tac-label { color: #c6a0ff; font-weight: 800; }
+        .tac-keyword { color: #ffd775; font-weight: 750; }
+
+        /* Target code */
+        .code-shell {
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #090f17;
+            box-shadow: 0 14px 34px rgba(0,0,0,.15);
+        }
+        .code-shell-head {
+            height: 39px;
+            padding: 0 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--line-soft);
+            background: #101722;
+            color: var(--muted-2);
+            font-size: 9px;
+            font-weight: 850;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+        }
+        .code-lines { overflow: auto; }
+        .code-line {
+            min-height: 25px;
+            display: grid;
+            grid-template-columns: 48px minmax(0,1fr);
+        }
+        .code-line:hover { background: rgba(255,255,255,.018); }
+        .code-no {
+            padding: 3px 10px 3px 0;
+            border-right: 1px solid rgba(148,163,184,.07);
+            color: #4f5d70;
+            text-align: right;
+            user-select: none;
+            font: 11px/1.7 Consolas, monospace;
+        }
+        .code-text {
+            padding: 3px 14px;
+            color: #d9e3f0;
+            white-space: pre;
+            font: 11px/1.7 Consolas, "Noto Sans Bengali", "Nirmala UI", monospace;
+        }
+        .py-keyword { color: #c6a0ff; font-weight: 750; }
+        .py-string { color: #7cf0b5; }
+        .py-number { color: #ffb979; }
+
+        /* Execution terminal */
+        .terminal-shell {
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #080d13;
+            box-shadow: 0 18px 46px rgba(0,0,0,.20);
+        }
+        .terminal-head {
+            height: 42px;
+            padding: 0 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--line-soft);
+            background: #101722;
+        }
+        .terminal-dots { display: flex; align-items: center; gap: 6px; }
+        .terminal-dots span { width: 8px; height: 8px; border-radius: 50%; background: #455166; }
+        .terminal-dots span:nth-child(1) { background: #ff6f7d; }
+        .terminal-dots span:nth-child(2) { background: #f4c45e; }
+        .terminal-dots span:nth-child(3) { background: #6ee7a7; }
+        .terminal-state { color: var(--muted-2); font-size: 9px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+        .terminal-state.success { color: var(--green); }
+        .terminal-state.failed { color: var(--red); }
+        .terminal-body {
+            min-height: 270px;
+            padding: 17px;
+            color: #c7f8da;
+            font: 12px/1.7 Consolas, "Noto Sans Bengali", "Nirmala UI", monospace;
+        }
+        .terminal-line { display: grid; grid-template-columns: 18px minmax(0,1fr); gap: 3px; }
+        .terminal-prompt { color: #53647a; user-select: none; }
+        .terminal-line.error { color: #ff9aa3; }
+        .terminal-empty { color: #647286; }
+
+        /* Footer */
+        footer { padding: 24px 0 34px; }
+        .footer-inner {
+            padding-top: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-top: 1px solid var(--line-soft);
+            color: var(--muted-2);
+            font-size: 11px;
+        }
+        .footer-inner strong { color: #cbd5e1; font-weight: 750; }
+
+        @media (max-width: 900px) {
+            .workspace-grid { grid-template-columns: 1fr; height: auto; }
+            .editor-pane { height: 480px; border-right: 0; border-bottom: 1px solid var(--line); }
+            .output-pane { height: 430px; }
+            .stage-panel { grid-template-columns: 1fr; }
+            .stage-details { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+            .stage-meta { margin-top: 0; }
+        }
+        @media (max-width: 650px) {
+            .container { width: min(100% - 22px, 1180px); }
+            .header-inner { height: 60px; }
+            .nav a:first-child { display: none; }
+            .section { padding: 38px 0 48px; }
+            .section-heading { align-items: flex-start; }
+            .section-heading h1 { font-size: 30px; }
+            .workspace-toolbar { align-items: flex-start; flex-direction: column; }
+            .actions { width: 100%; }
+            .actions .btn { flex: 1; }
+            .editor-body { grid-template-columns: 40px 1fr; }
+            .line-numbers { font-size: 13px; }
+            #source { padding-left: 14px; font-size: 13px; }
+            .editor-pane { height: 440px; }
+            .output-pane { height: 390px; }
+            .output-wrap { min-height: 0; padding: 18px; }
+            .stage-details { display: block; }
+            .stage-meta { margin-top: 18px; }
+            .ast-visual { min-height: 440px; padding: 26px 22px 42px; }
+            .stage-toolbar { gap: 5px; }
+            .stage-toggle-btn { padding: 0 8px; }
+            .ast-zoom-value { min-width: 38px; }
+            .token-table-wrap, .semantic-wrap, .tac-wrap, .code-wrap, .terminal-wrap { padding: 12px; }
+            .footer-inner { align-items: flex-start; flex-direction: column; }
+        }
+    </style>
+<style>/* ==========================================
+   🚀 HIDDEN ELEMENTS (Original Rules)
+   ========================================== */
+[data-testid="accounts-profile-button"],
+[data-testid="conversation-options-button"],
+[aria-description="Share sheet"],
+#modal-account-payment,
+#modal-conversation-history-rate-limit,
+a[href="/library"],
+a[href="/Invite team members"],
+a[href="/apps"],
+a[href="/logout"],
+a[href="/admin"],
+a[href="/deep-research"],
+div[id*="pricing"],
+.modal-pricing {
+  display: none !important;
+}
+
+#notice_share {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+/* ==========================================
+   🚀 COMBINED SCROLL UNLOCK (Wheel & Touch Fix)
+   ========================================== */
+html, body, #__next, [data-scroll-locked] {
+    overflow: visible !important;
+    overflow-y: auto !important;
+    pointer-events: auto !important;
+    padding-right: 0 !important; 
+}
+
+.flex-1.overflow-hidden, 
+.react-scroll-to-bottom--css {
+    overflow-y: auto !important;
+    pointer-events: auto !important;
+}
+
+div[role="dialog"] ~ div[aria-hidden="true"][style*="position: fixed"] {
+    display: none !important;
+    pointer-events: none !important;
+}</style><style>/* ==========================================
+   🚀 HIDDEN ELEMENTS (Original Rules)
+   ========================================== */
+[data-testid="accounts-profile-button"],
+[data-testid="conversation-options-button"],
+[aria-description="Share sheet"],
+#modal-account-payment,
+#modal-conversation-history-rate-limit,
+a[href="/library"],
+a[href="/Invite team members"],
+a[href="/apps"],
+a[href="/logout"],
+a[href="/admin"],
+a[href="/deep-research"],
+div[id*="pricing"],
+.modal-pricing {
+  display: none !important;
+}
+
+#notice_share {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+/* ==========================================
+   🚀 COMBINED SCROLL UNLOCK (Wheel & Touch Fix)
+   ========================================== */
+html, body, #__next, [data-scroll-locked] {
+    overflow: visible !important;
+    overflow-y: auto !important;
+    pointer-events: auto !important;
+    padding-right: 0 !important; 
+}
+
+.flex-1.overflow-hidden, 
+.react-scroll-to-bottom--css {
+    overflow-y: auto !important;
+    pointer-events: auto !important;
+}
+
+div[role="dialog"] ~ div[aria-hidden="true"][style*="position: fixed"] {
+    display: none !important;
+    pointer-events: none !important;
+}</style></head>
+<body>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="#compiler" class="brand" aria-label="Suborno Compiler">
+            <span class="brand-mark">স</span>
+            <span>Suborno Compiler</span>
+        </a>
+        <nav class="nav" aria-label="Primary navigation">
+            <a href="#pipeline">How it works</a>
+            <a href="#developers">Developers</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <section id="compiler" class="section">
+        <div class="container">
+            <div class="section-heading">
+                <div>
+                    <h1>Online Compiler</h1>
+                    <p class="section-subtitle">Write, compile and run.</p>
+                </div>
+            </div>
+
+            <div class="workspace">
+                <div class="workspace-toolbar">
+                    <div class="workspace-file">input.bn</div>
+                    <div class="actions">
+                        <button class="btn quiet" type="button" onclick="clearSource()">Clear</button>
+                        <button id="compileBtn" class="btn" type="button" onclick="send(false)">Compile</button>
+                        <button id="runBtn" class="btn primary" type="button" onclick="send(true)">Compile &amp; Run</button>
+                    </div>
+                </div>
+
+                <div class="workspace-grid">
+                    <section class="pane editor-pane" aria-label="Source editor">
+                        <div class="pane-header">
+                            <strong>Input</strong>
+                            <span class="language-pill">Suborno</span>
+                        </div>
+                        <div class="editor-body">
+                            <pre id="lineNumbers" class="line-numbers" aria-hidden="true">1</pre>
+                            <textarea id="source" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Suborno source code" placeholder="Write Suborno code here..."></textarea>
+                        </div>
+                    </section>
+
+                    <section class="pane output-pane" aria-label="Compiler output">
+                        <div class="pane-header">
+                            <strong>Output</strong>
+                            <span id="outputMode" class="language-pill">Ready</span>
+                        </div>
+                        <div class="output-wrap" aria-live="polite">
+                            <div id="outputStatus" class="output-status">Ready to compile.</div>
+                            <div id="outputHeadline" class="output-headline"></div>
+                            <pre id="outputBody" class="output-body output-placeholder">Your result will appear here.</pre>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="pipeline" class="section">
+        <div class="container">
+            <div class="section-heading">
+                <div>
+                    <h2>Visualize how the compiler works</h2>
+                    <p class="section-subtitle">Select a stage to inspect its real output.</p>
+                </div>
+            </div>
+
+            <div class="pipeline-scroll">
+                <div class="pipeline" aria-label="Compiler pipeline">
+                    <button id="stage-card-tokens" class="stage-card active" type="button" onclick="selectStage('tokens')">
+                        <div class="stage-top"><span class="stage-index">01</span><span class="stage-dot"></span></div>
+                        <div class="stage-name">Tokens</div>
+                        <div class="stage-kind">Lexical analysis</div>
+                    </button>
+                    <button id="stage-card-parse_tree" class="stage-card" type="button" onclick="selectStage('parse_tree')">
+                        <div class="stage-top"><span class="stage-index">02</span><span class="stage-dot"></span></div>
+                        <div class="stage-name">Parse Tree</div>
+                        <div class="stage-kind">Syntax analysis</div>
+                    </button>
+                    <button id="stage-card-semantic" class="stage-card" type="button" onclick="selectStage('semantic')">
+                        <div class="stage-top"><span class="stage-index">03</span><span class="stage-dot"></span></div>
+                        <div class="stage-name">Semantic</div>
+                        <div class="stage-kind">Semantic analysis</div>
+                    </button>
+                    <button id="stage-card-tac" class="stage-card" type="button" onclick="selectStage('tac')">
+                        <div class="stage-top"><span class="stage-index">04</span><span class="stage-dot"></span></div>
+                        <div class="stage-name">TAC</div>
+                        <div class="stage-kind">Intermediate code</div>
+                    </button>
+                    <button id="stage-card-codegen" class="stage-card" type="button" onclick="selectStage('codegen')">
+                        <div class="stage-top"><span class="stage-index">05</span><span class="stage-dot"></span></div>
+                        <div class="stage-name">Target Code</div>
+                        <div class="stage-kind">Code generation</div>
+                    </button>
+                    <button id="stage-card-execution" class="stage-card" type="button" onclick="selectStage('execution')">
+                        <div class="stage-top"><span class="stage-index">06</span><span class="stage-dot"></span></div>
+                        <div class="stage-name">Execution</div>
+                        <div class="stage-kind">Program output</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="stage-panel">
+                <aside class="stage-details">
+                    <div>
+                        <div id="stageNumber" class="stage-number">Stage 01</div>
+                        <h3 id="stageTitle">Lexical Analysis</h3>
+                        <p id="stageDescription" class="stage-description">Breaks source code into tokens.</p>
+                    </div>
+                    <div class="stage-meta">
+                        <div class="stage-meta-row"><strong>Input</strong><span id="stageInput">Source code</span></div>
+                        <div class="stage-meta-row"><strong>Output</strong><span id="stageResult">Tokens</span></div>
+                        <div class="stage-meta-row"><strong>Tool</strong><span id="stageTool">Flex</span></div>
+                    </div>
+                </aside>
+
+                <div class="stage-live">
+                    <div class="stage-live-header">
+                        <span id="stageLiveTitle">Tokens</span>
+                        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                            <div id="stageToolbar" class="stage-toolbar" hidden>
+                                <div class="stage-view-toggle" role="group" aria-label="Stage output view">
+                                    <button id="stageVisualBtn" class="stage-toggle-btn active" type="button" onclick="setStageView('visual')">Table</button>
+                                    <button id="stageRawBtn" class="stage-toggle-btn" type="button" onclick="setStageView('raw')">Raw</button>
+                                </div>
+                                <div id="astZoomControls" class="ast-zoom-controls" hidden>
+                                    <button class="ast-zoom-btn" type="button" onclick="changeAstZoom(-0.1)" aria-label="Zoom out">−</button>
+                                    <span id="astZoomValue" class="ast-zoom-value">100%</span>
+                                    <button class="ast-zoom-btn" type="button" onclick="changeAstZoom(0.1)" aria-label="Zoom in">+</button>
+                                </div>
+                            </div>
+                            <span class="live-indicator">Live output</span>
+                        </div>
+                    </div>
+                    <div id="stageVisual" class="stage-visual" hidden></div>
+                    <pre id="stageOutput" class="stage-output">Compile the code to inspect this stage.</pre>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer id="developers">
+    <div class="container footer-inner">
+        <div><strong>Suborno</strong> — Bengali programming language compiler.</div>
+        <div>Developed by <strong>Utsho, Bithi &amp; Tushi</strong></div>
+    </div>
+</footer>
+
+<script>
+let lastResult = null;
+let selectedStage = 'tokens';
+let stageViewMode = 'visual';
+let astZoom = 1;
+
+const STAGES = {
+    tokens: {
+        number: 'Stage 01',
+        title: 'Lexical Analysis',
+        short: 'Tokens',
+        visualLabel: 'Table',
+        description: 'Breaks source code into keywords, identifiers, literals, operators and symbols.',
+        input: 'Source code',
+        output: 'Token stream',
+        tool: 'Flex',
+        fallback: 'Compile the code to inspect the token stream.'
+    },
+    parse_tree: {
+        number: 'Stage 02',
+        title: 'Syntax Analysis',
+        short: 'Parse Tree / AST',
+        visualLabel: 'Visual Tree',
+        description: 'Checks grammar and builds the program structure.',
+        input: 'Tokens',
+        output: 'Parse Tree / AST',
+        tool: 'Bison',
+        fallback: 'Compile the code to inspect the Parse Tree / AST.'
+    },
+    semantic: {
+        number: 'Stage 03',
+        title: 'Semantic Analysis',
+        short: 'Semantic Result',
+        visualLabel: 'Symbol Table',
+        description: 'Checks declarations, types, initialization and program meaning.',
+        input: 'AST',
+        output: 'Validated AST / Symbols',
+        tool: 'C++ Analyzer',
+        fallback: 'Compile the code to inspect semantic analysis.'
+    },
+    tac: {
+        number: 'Stage 04',
+        title: 'Intermediate Code',
+        short: 'Three-Address Code',
+        visualLabel: 'Instruction View',
+        description: 'Converts the validated program into simple intermediate instructions.',
+        input: 'Validated AST',
+        output: 'TAC',
+        tool: 'TAC Generator',
+        fallback: 'Compile valid code to inspect the TAC.'
+    },
+    codegen: {
+        number: 'Stage 05',
+        title: 'Code Generation',
+        short: 'Target Code',
+        visualLabel: 'Code View',
+        description: 'Translates the compiler representation into Python target code.',
+        input: 'Intermediate form',
+        output: 'Python code',
+        tool: 'Code Generator',
+        fallback: 'Compile valid code to inspect generated Python.'
+    },
+    execution: {
+        number: 'Stage 06',
+        title: 'Execution',
+        short: 'Program Output',
+        visualLabel: 'Terminal',
+        description: 'Runs the generated target program and captures its output.',
+        input: 'Python code',
+        output: 'Runtime output',
+        tool: 'Python',
+        fallback: 'Use Compile & Run to inspect execution output.'
+    }
+};
+
+const sourceEl = document.getElementById('source');
+const lineNumbersEl = document.getElementById('lineNumbers');
+
+function updateLineNumbers() {
+    const lineCount = Math.max(1, sourceEl.value.split('\n').length);
+    lineNumbersEl.textContent = Array.from({length: lineCount}, (_, i) => i + 1).join('\n');
+}
+
+sourceEl.addEventListener('input', updateLineNumbers);
+sourceEl.addEventListener('scroll', () => {
+    lineNumbersEl.scrollTop = sourceEl.scrollTop;
+});
+sourceEl.addEventListener('keydown', event => {
+    if (event.key !== 'Tab') return;
+    event.preventDefault();
+    const start = sourceEl.selectionStart;
+    const end = sourceEl.selectionEnd;
+    sourceEl.value = sourceEl.value.slice(0, start) + '    ' + sourceEl.value.slice(end);
+    sourceEl.selectionStart = sourceEl.selectionEnd = start + 4;
+    updateLineNumbers();
+});
+
+function stageValue(stage) {
+    if (!lastResult) return '';
+    if (stage === 'codegen') return lastResult.generated_python || '';
+    if (stage === 'execution') {
+        return [lastResult.runtime_stdout || '', lastResult.runtime_stderr || ''].filter(Boolean).join('\n');
+    }
+    return lastResult[stage] || '';
+}
+
+function stageFailed(stage) {
+    if (!lastResult) return false;
+    const value = stageValue(stage);
+    if (stage === 'parse_tree') return /Unavailable because parsing failed/i.test(value);
+    if (stage === 'semantic') return /Status:\s*FAILED/i.test(value);
+    if (stage === 'tac') return /Unavailable/i.test(value);
+    if (stage === 'execution') {
+        return lastResult.stage === 'runtime' ||
+            (lastResult.runtime_return_code !== undefined && lastResult.runtime_return_code !== 0);
+    }
+    return false;
+}
+
+function cleanAstLines(raw) {
+    return raw
+        .split('\n')
+        .map(line => line.replace(/\r$/, ''))
+        .filter(line => {
+            const t = line.trim();
+            return t &&
+                !/^PARSE TREE\s*\/\s*ABSTRACT SYNTAX TREE/i.test(t) &&
+                !/^=+$/.test(t);
+        });
+}
+
+function parseAstText(raw) {
+    const lines = cleanAstLines(raw);
+    if (!lines.length) return null;
+
+    const rootLineIndex = lines.findIndex(line => !/(\|--|`--|├──|└──)/.test(line));
+    if (rootLineIndex === -1) return null;
+
+    const root = { label: lines[rootLineIndex].trim(), children: [] };
+    const stack = [{ depth: 0, node: root }];
+
+    for (let i = rootLineIndex + 1; i < lines.length; i++) {
+        const line = lines[i];
+        const markerMatch = line.match(/(\|--|`--|├──|└──)/);
+        if (!markerMatch || markerMatch.index === undefined) continue;
+
+        const markerIndex = markerMatch.index;
+        const prefix = line.slice(0, markerIndex).replace(/\t/g, '    ');
+        const depth = Math.floor(prefix.length / 4) + 1;
+        const label = line.slice(markerIndex + markerMatch[0].length).trim();
+        if (!label) continue;
+
+        const node = { label, children: [] };
+        while (stack.length && stack[stack.length - 1].depth >= depth) stack.pop();
+        const parent = stack.length ? stack[stack.length - 1].node : root;
+        parent.children.push(node);
+        stack.push({ depth, node });
+    }
+    return root;
+}
+
+function astNodeClass(type) {
+    if (/ProgramNode/i.test(type)) return 'node-root';
+    if (/DecNode/i.test(type)) return 'node-declaration';
+    if (/(IfNode|WhileNode|ForNode|BlockNode)/i.test(type)) return 'node-control';
+    if (/(BinOpNode|Unary|AssignNode)/i.test(type)) return 'node-operation';
+    if (/PrintNode/i.test(type)) return 'node-output';
+    if (/(IntNode|FloatNode|StringNode|BoolNode|CharNode|Literal)/i.test(type)) return 'node-literal';
+    if (/IdNode/i.test(type)) return 'node-identifier';
+    return '';
+}
+
+function splitAstLabel(label) {
+    const index = label.indexOf(':');
+    if (index === -1) return { type: label.trim(), value: '' };
+    return { type: label.slice(0, index).trim(), value: label.slice(index + 1).trim() };
+}
+
+function renderAstNode(node) {
+    const li = document.createElement('li');
+    const parts = splitAstLabel(node.label);
+    const box = document.createElement('div');
+    box.className = 'ast-node ' + astNodeClass(parts.type);
+    box.title = node.label;
+
+    const type = document.createElement('div');
+    type.className = 'ast-node-type';
+    type.textContent = parts.type;
+    box.appendChild(type);
+
+    if (parts.value) {
+        const value = document.createElement('div');
+        value.className = 'ast-node-value';
+        value.textContent = parts.value;
+        box.appendChild(value);
+    }
+
+    li.appendChild(box);
+    if (node.children && node.children.length) {
+        const ul = document.createElement('ul');
+        node.children.forEach(child => ul.appendChild(renderAstNode(child)));
+        li.appendChild(ul);
+    }
+    return li;
+}
+
+function renderAst(raw, host) {
+    const visual = document.createElement('div');
+    visual.className = 'ast-visual';
+    const tree = document.createElement('div');
+    tree.id = 'astTree';
+    tree.className = 'ast-tree';
+    visual.appendChild(tree);
+    host.appendChild(visual);
+
+    const root = parseAstText(raw);
+    if (!root) return false;
+    const ul = document.createElement('ul');
+    ul.appendChild(renderAstNode(root));
+    tree.appendChild(ul);
+    applyAstZoom();
+    return true;
+}
+
+function applyAstZoom() {
+    const tree = document.getElementById('astTree');
+    if (tree) {
+        tree.style.setProperty('--ast-zoom', astZoom.toFixed(2));
+        tree.style.zoom = astZoom.toFixed(2);
+    }
+    const value = document.getElementById('astZoomValue');
+    if (value) value.textContent = Math.round(astZoom * 100) + '%';
+}
+
+function changeAstZoom(delta) {
+    astZoom = Math.max(0.5, Math.min(1.6, Math.round((astZoom + delta) * 10) / 10));
+    applyAstZoom();
+}
+
+function tokenClass(token) {
+    if (/ERROR/i.test(token)) return 'error';
+    if (/(TYPE_|\bIF\b|\bELSE\b|WHILE|PRINT|BREAK|CONTINUE|TRUE|FALSE|AND|OR|NOT$)/i.test(token)) return 'keyword';
+    if (/IDENTIFIER/i.test(token)) return 'identifier';
+    if (/LITERAL/i.test(token)) return 'literal';
+    if (/(ASSIGN|PLUS|MINUS|STAR|SLASH|EQUAL|LESS|GREATER|NOT_EQUALS)/i.test(token)) return 'operator';
+    if (/(PAREN|BRACE|SEMICOLON|COMMA)/i.test(token)) return 'symbol';
+    return '';
+}
+
+function parseTokens(raw) {
+    const rows = [];
+    raw.split('\n').forEach(line => {
+        const t = line.trim();
+        if (!t || /^TOKENS\s*\/\s*LEXICAL/i.test(t) || /^[-=]+$/.test(t) || /^#\s*\t/i.test(line) || /^#\s+Line/i.test(t)) return;
+        const parts = line.split('\t');
+        if (parts.length >= 4 && /^\d+$/.test(parts[0].trim())) {
+            rows.push({ index: parts[0].trim(), line: parts[1].trim(), token: parts[2].trim(), lexeme: parts.slice(3).join('\t').trim() });
+        }
+    });
+    return rows;
+}
+
+function renderTokens(raw, host) {
+    const rows = parseTokens(raw);
+    if (!rows.length) return false;
+    const wrap = document.createElement('div');
+    wrap.className = 'token-table-wrap';
+    const shell = document.createElement('div');
+    shell.className = 'visual-table-shell';
+    const table = document.createElement('table');
+    table.className = 'visual-table';
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    ['#', 'Line', 'Token type', 'Lexeme'].forEach(label => {
+        const th = document.createElement('th'); th.textContent = label; headRow.appendChild(th);
+    });
+    thead.appendChild(headRow); table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    rows.forEach(row => {
+        const tr = document.createElement('tr');
+        const idx = document.createElement('td'); idx.className = 'cell-index'; idx.textContent = row.index;
+        const ln = document.createElement('td'); ln.className = 'cell-line'; ln.textContent = row.line;
+        const tok = document.createElement('td');
+        const badge = document.createElement('span'); badge.className = 'token-badge ' + tokenClass(row.token); badge.textContent = row.token; tok.appendChild(badge);
+        const lex = document.createElement('td'); lex.className = 'cell-lexeme'; lex.textContent = row.lexeme;
+        tr.append(idx, ln, tok, lex); tbody.appendChild(tr);
+    });
+    table.appendChild(tbody); shell.appendChild(table); wrap.appendChild(shell); host.appendChild(wrap);
+    return true;
+}
+
+function parseSemantic(raw) {
+    const statusMatch = raw.match(/Status:\s*(SUCCESS|FAILED)/i);
+    const status = statusMatch ? statusMatch[1].toUpperCase() : 'UNKNOWN';
+    const lines = raw.split('\n').map(v => v.replace(/\r$/, ''));
+    const errors = [];
+    const symbols = [];
+    let mode = '';
+    for (const line of lines) {
+        const t = line.trim();
+        if (/^Semantic Errors$/i.test(t)) { mode = 'errors'; continue; }
+        if (/^Symbol Table$/i.test(t)) { mode = 'symbols'; continue; }
+        if (/^Name\s+Type\s+State$/i.test(t) || /^[-=]+$/.test(t) || !t) continue;
+        if (mode === 'errors' && /^\d+\.\s+/.test(t)) {
+            errors.push(t.replace(/^\d+\.\s+/, ''));
+        } else if (mode === 'symbols' && !/^\(no symbols\)$/i.test(t)) {
+            const parts = line.split('\t').map(v => v.trim()).filter(Boolean);
+            if (parts.length >= 3) symbols.push({ name: parts[0], type: parts[1], state: parts.slice(2).join(' ') });
+        }
+    }
+    return { status, errors, symbols };
+}
+
+function renderSemantic(raw, host) {
+    if (!raw.trim()) return false;
+    const data = parseSemantic(raw);
+    const wrap = document.createElement('div'); wrap.className = 'semantic-wrap';
+    const summary = document.createElement('div'); summary.className = 'semantic-summary';
+    const main = document.createElement('div'); main.className = 'semantic-summary-main';
+    const icon = document.createElement('div'); icon.className = 'semantic-status-icon ' + (data.status === 'FAILED' ? 'failed' : 'success'); icon.textContent = data.status === 'FAILED' ? '×' : '✓';
+    const copy = document.createElement('div');
+    const title = document.createElement('div'); title.className = 'semantic-summary-title'; title.textContent = data.status === 'FAILED' ? 'Semantic checks failed' : 'Semantic checks passed';
+    const sub = document.createElement('div'); sub.className = 'semantic-summary-sub'; sub.textContent = data.symbols.length + (data.symbols.length === 1 ? ' symbol' : ' symbols') + (data.errors.length ? ' · ' + data.errors.length + (data.errors.length === 1 ? ' error' : ' errors') : '');
+    copy.append(title, sub); main.append(icon, copy);
+    const pill = document.createElement('span'); pill.className = 'status-pill ' + (data.status === 'FAILED' ? 'failed' : 'success'); pill.textContent = data.status === 'FAILED' ? 'Failed' : 'Passed';
+    summary.append(main, pill); wrap.appendChild(summary);
+
+    if (data.errors.length) {
+        const errorBox = document.createElement('div'); errorBox.className = 'semantic-errors';
+        data.errors.forEach(message => { const row = document.createElement('div'); row.className = 'semantic-error'; const mark = document.createElement('span'); mark.textContent = '⚠'; const txt = document.createElement('span'); txt.textContent = message; row.append(mark, txt); errorBox.appendChild(row); });
+        wrap.appendChild(errorBox);
+    }
+
+    if (data.symbols.length) {
+        const shell = document.createElement('div'); shell.className = 'visual-table-shell';
+        const table = document.createElement('table'); table.className = 'visual-table';
+        const thead = document.createElement('thead'); const hr = document.createElement('tr');
+        ['Identifier', 'Type', 'State'].forEach(label => { const th = document.createElement('th'); th.textContent = label; hr.appendChild(th); });
+        thead.appendChild(hr); table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        data.symbols.forEach(symbol => {
+            const tr = document.createElement('tr');
+            const name = document.createElement('td'); name.className = 'cell-lexeme'; name.textContent = symbol.name;
+            const type = document.createElement('td'); type.textContent = symbol.type;
+            const state = document.createElement('td'); const badge = document.createElement('span');
+            const stateClass = /uninitialized/i.test(symbol.state) ? 'uninitialized' : (/initialized/i.test(symbol.state) ? 'initialized' : '');
+            badge.className = 'state-badge ' + stateClass; badge.textContent = symbol.state; state.appendChild(badge);
+            tr.append(name, type, state); tbody.appendChild(tr);
+        });
+        table.appendChild(tbody); shell.appendChild(table); wrap.appendChild(shell);
+    }
+    host.appendChild(wrap); return true;
+}
+
+function parseTac(raw) {
+    const rows = [];
+    raw.split('\n').forEach(line => {
+        const m = line.match(/^\s*(\d+)\.\s*(?:\t)?(.*)$/);
+        if (m) rows.push({ index: m[1], code: m[2].trim() });
+    });
+    return rows;
+}
+
+function appendTacCode(host, code) {
+    const pattern = /(\b(?:t\d+)\b|\b(?:L\d+)\b|\b(?:ifFalse|if|goto|print)\b)/g;
+    let last = 0; let match;
+    while ((match = pattern.exec(code))) {
+        if (match.index > last) host.appendChild(document.createTextNode(code.slice(last, match.index)));
+        const span = document.createElement('span');
+        span.className = /^t\d+$/.test(match[0]) ? 'tac-temp' : (/^L\d+$/.test(match[0]) ? 'tac-label' : 'tac-keyword');
+        span.textContent = match[0]; host.appendChild(span); last = pattern.lastIndex;
+    }
+    if (last < code.length) host.appendChild(document.createTextNode(code.slice(last)));
+}
+
+function renderTac(raw, host) {
+    const rows = parseTac(raw);
+    if (!rows.length) return false;
+    const wrap = document.createElement('div'); wrap.className = 'tac-wrap';
+    const list = document.createElement('div'); list.className = 'tac-list';
+    rows.forEach(row => {
+        const item = document.createElement('div'); item.className = 'tac-row';
+        const index = document.createElement('div'); index.className = 'tac-index'; index.textContent = row.index.padStart(2, '0');
+        const code = document.createElement('div'); code.className = 'tac-code'; appendTacCode(code, row.code);
+        item.append(index, code); list.appendChild(item);
+    });
+    wrap.appendChild(list); host.appendChild(wrap); return true;
+}
+
+function appendPythonCode(host, line) {
+    const pattern = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\b(?:if|else|elif|while|for|in|print|True|False|and|or|not|break|continue|def|return)\b|\b\d+(?:\.\d+)?\b)/g;
+    let last = 0; let match;
+    while ((match = pattern.exec(line))) {
+        if (match.index > last) host.appendChild(document.createTextNode(line.slice(last, match.index)));
+        const span = document.createElement('span');
+        span.className = /^['"]/.test(match[0]) ? 'py-string' : (/^\d/.test(match[0]) ? 'py-number' : 'py-keyword');
+        span.textContent = match[0]; host.appendChild(span); last = pattern.lastIndex;
+    }
+    if (last < line.length) host.appendChild(document.createTextNode(line.slice(last)));
+}
+
+function renderCode(raw, host) {
+    if (!raw.trim()) return false;
+    const wrap = document.createElement('div'); wrap.className = 'code-wrap';
+    const shell = document.createElement('div'); shell.className = 'code-shell';
+    const head = document.createElement('div'); head.className = 'code-shell-head';
+    const left = document.createElement('span'); left.textContent = 'Generated target'; const right = document.createElement('span'); right.textContent = 'Python'; head.append(left, right);
+    const lines = document.createElement('div'); lines.className = 'code-lines';
+    raw.replace(/\r/g, '').split('\n').forEach((line, i) => {
+        if (i === raw.replace(/\r/g, '').split('\n').length - 1 && line === '') return;
+        const row = document.createElement('div'); row.className = 'code-line';
+        const no = document.createElement('div'); no.className = 'code-no'; no.textContent = i + 1;
+        const code = document.createElement('div'); code.className = 'code-text'; appendPythonCode(code, line || ' ');
+        row.append(no, code); lines.appendChild(row);
+    });
+    shell.append(head, lines); wrap.appendChild(shell); host.appendChild(wrap); return true;
+}
+
+function executionAvailable() {
+    if (!lastResult) return false;
+    return Object.prototype.hasOwnProperty.call(lastResult, 'runtime_return_code') || lastResult.stage === 'runtime' || lastResult.stage === 'finished';
+}
+
+function renderExecution(raw, host, failed) {
+    if (!executionAvailable() && !raw.trim()) return false;
+    const wrap = document.createElement('div'); wrap.className = 'terminal-wrap';
+    const shell = document.createElement('div'); shell.className = 'terminal-shell';
+    const head = document.createElement('div'); head.className = 'terminal-head';
+    const dots = document.createElement('div'); dots.className = 'terminal-dots'; dots.append(document.createElement('span'), document.createElement('span'), document.createElement('span'));
+    const state = document.createElement('span'); state.className = 'terminal-state ' + (failed ? 'failed' : 'success'); state.textContent = failed ? 'Process failed' : 'Process finished';
+    head.append(dots, state);
+    const body = document.createElement('div'); body.className = 'terminal-body';
+    const content = raw.trim();
+    if (!content) {
+        const empty = document.createElement('div'); empty.className = 'terminal-empty'; empty.textContent = 'Program completed with no printed output.'; body.appendChild(empty);
+    } else {
+        content.split('\n').forEach(line => {
+            const row = document.createElement('div'); row.className = 'terminal-line' + (failed ? ' error' : '');
+            const prompt = document.createElement('span'); prompt.className = 'terminal-prompt'; prompt.textContent = '›';
+            const text = document.createElement('span'); text.textContent = line; row.append(prompt, text); body.appendChild(row);
+        });
+    }
+    shell.append(head, body); wrap.appendChild(shell); host.appendChild(wrap); return true;
+}
+
+function visualAvailable(stage, value) {
+    if (stage === 'parse_tree') return Boolean(value) && !/Unavailable/i.test(value);
+    if (stage === 'semantic') return Boolean(value);
+    if (stage === 'tac') return Boolean(value) && !/Unavailable/i.test(value);
+    if (stage === 'execution') return Boolean(value) || executionAvailable();
+    return Boolean(value);
+}
+
+function renderStageVisual(stage, value, failed) {
+    const host = document.getElementById('stageVisual');
+    host.innerHTML = '';
+    if (!visualAvailable(stage, value)) return false;
+
+    if (stage === 'tokens') return renderTokens(value, host);
+    if (stage === 'parse_tree') return renderAst(value, host);
+    if (stage === 'semantic') return renderSemantic(value, host);
+    if (stage === 'tac') return renderTac(value, host);
+    if (stage === 'codegen') return renderCode(value, host);
+    if (stage === 'execution') return renderExecution(value, host, failed);
+    return false;
+}
+
+function setStageView(mode) {
+    stageViewMode = mode === 'raw' ? 'raw' : 'visual';
+    const visualBtn = document.getElementById('stageVisualBtn');
+    const rawBtn = document.getElementById('stageRawBtn');
+    const visual = document.getElementById('stageVisual');
+    const raw = document.getElementById('stageOutput');
+    const zoom = document.getElementById('astZoomControls');
+
+    visualBtn.classList.toggle('active', stageViewMode === 'visual');
+    rawBtn.classList.toggle('active', stageViewMode === 'raw');
+    zoom.hidden = !(selectedStage === 'parse_tree' && stageViewMode === 'visual');
+
+    if (stageViewMode === 'visual') {
+        visual.hidden = false;
+        raw.classList.add('visual-hidden');
+    } else {
+        visual.hidden = true;
+        raw.classList.remove('visual-hidden');
+    }
+}
+
+function updateStageVisualizer(stage, value, failed) {
+    const toolbar = document.getElementById('stageToolbar');
+    const visual = document.getElementById('stageVisual');
+    const raw = document.getElementById('stageOutput');
+    const visualBtn = document.getElementById('stageVisualBtn');
+    const zoom = document.getElementById('astZoomControls');
+
+    toolbar.hidden = true;
+    visual.hidden = true;
+    raw.classList.remove('visual-hidden');
+    zoom.hidden = true;
+
+    const rendered = renderStageVisual(stage, value, failed);
+    if (!rendered) return;
+
+    visualBtn.textContent = STAGES[stage].visualLabel || 'Visual';
+    toolbar.hidden = false;
+    setStageView(stageViewMode);
+}
+
+function selectStage(stage) {
+    selectedStage = stage;
+    const meta = STAGES[stage];
+    document.querySelectorAll('.stage-card').forEach(card => card.classList.remove('active'));
+    document.getElementById('stage-card-' + stage)?.classList.add('active');
+
+    document.getElementById('stageNumber').textContent = meta.number;
+    document.getElementById('stageTitle').textContent = meta.title;
+    document.getElementById('stageDescription').textContent = meta.description;
+    document.getElementById('stageInput').textContent = meta.input;
+    document.getElementById('stageResult').textContent = meta.output;
+    document.getElementById('stageTool').textContent = meta.tool;
+    document.getElementById('stageLiveTitle').textContent = meta.short;
+
+    const output = document.getElementById('stageOutput');
+    const value = stageValue(stage).trim();
+    const failed = Boolean(value) && stageFailed(stage);
+    output.textContent = value || meta.fallback;
+    output.classList.toggle('has-data', Boolean(value) && !failed);
+    output.classList.toggle('failed', failed);
+
+    updateStageVisualizer(stage, value, failed);
+}
+
+function setStageState(stage, state) {
+    const card = document.getElementById('stage-card-' + stage);
+    if (!card) return;
+    card.classList.remove('done', 'failed');
+    if (state === 'done') card.classList.add('done');
+    if (state === 'failed') card.classList.add('failed');
+}
+
+function updateStageStates(data, runRequested) {
+    const tokenText = (data.tokens || '').trim();
+    const parseText = (data.parse_tree || '').trim();
+    const semanticText = (data.semantic || '').trim();
+    const tacText = (data.tac || '').trim();
+    const codeText = (data.generated_python || '').trim();
+
+    setStageState('tokens', tokenText ? 'done' : 'waiting');
+    setStageState('parse_tree', /Unavailable because parsing failed/i.test(parseText) ? 'failed' : (parseText ? 'done' : 'waiting'));
+    setStageState('semantic', /Status:\s*FAILED/i.test(semanticText) ? 'failed' : (semanticText ? 'done' : 'waiting'));
+    setStageState('tac', /Unavailable/i.test(tacText) ? 'failed' : (tacText ? 'done' : 'waiting'));
+    setStageState('codegen', codeText ? 'done' : 'waiting');
+
+    if (!runRequested) {
+        setStageState('execution', 'waiting');
+    } else if (data.stage === 'runtime' || (data.runtime_return_code !== undefined && data.runtime_return_code !== 0)) {
+        setStageState('execution', 'failed');
+    } else if (data.stage === 'finished' || data.runtime_return_code === 0) {
+        setStageState('execution', 'done');
+    } else {
+        setStageState('execution', 'waiting');
+    }
+}
+
+function setBusy(value) {
+    document.getElementById('compileBtn').disabled = value;
+    document.getElementById('runBtn').disabled = value;
+}
+
+function setOutputState({status = '', statusKind = '', headline = '', headlineKind = '', body = '', bodyKind = '', mode = ''}) {
+    const statusEl = document.getElementById('outputStatus');
+    const headlineEl = document.getElementById('outputHeadline');
+    const bodyEl = document.getElementById('outputBody');
+    const modeEl = document.getElementById('outputMode');
+
+    statusEl.textContent = status;
+    statusEl.className = 'output-status' + (statusKind ? ' ' + statusKind : '');
+
+    headlineEl.textContent = headline;
+    headlineEl.className = 'output-headline' + (headline ? ' visible' : '') + (headlineKind ? ' ' + headlineKind : '');
+
+    bodyEl.textContent = body;
+    bodyEl.className = 'output-body' + (bodyKind ? ' ' + bodyKind : '');
+    if (!body) bodyEl.classList.add('output-placeholder');
+
+    modeEl.textContent = mode || 'Ready';
+}
+
+function clearSource() {
+    sourceEl.value = '';
+    updateLineNumbers();
+    sourceEl.focus();
+}
+
+function compilerLog(data) {
+    return [data.compiler_stdout || '', data.compiler_stderr || '']
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+}
+
+function compileErrorDetails(data) {
+
+    const semantic = (data.semantic || '').trim();
+
+    if (/Status:\s*FAILED/i.test(semantic)) {
+
+        const errors = [];
+
+        const lines = semantic.split('\n');
+
+        let started = false;
+
+        for (const line of lines) {
+
+            if (/Semantic Errors/i.test(line)) {
+                started = true;
+                continue;
+            }
+
+            if (started) {
+
+                const match = line.match(/^\d+\.\s+(.*)/);
+
+                if (match) {
+                    errors.push(match[1]);
+                }
+            }
+        }
+
+
+        if(errors.length)
+            return errors.join('\n');
+    }
+
+
+    const log = compilerLog(data);
+
+    if(log)
+    {
+        return log
+            .replace(/^Compilation failed\.?/i, '')
+            .replace(/Check error reports\./gi, '')
+            .replace(/=+/g, '')
+            .trim();
+    }
+
+
+    return "The compiler reported an error.";
+}
+
+
+
+
+async function send(runRequested) {
+    const source = sourceEl.value;
+    setBusy(true);
+    setOutputState({
+        status: runRequested ? 'Compiling and running…' : 'Compiling…',
+        statusKind: 'busy',
+        body: '',
+        mode: 'Working'
+    });
+
+    try {
+        const response = await fetch('/api/compile', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({source, run: runRequested})
+        });
+        const data = await response.json();
+        lastResult = data;
+
+        if (!data.ok) {
+            const runtimeError = data.stage === 'runtime';
+            setOutputState({
+                status: runtimeError ? 'Runtime error' : 'Compiler stopped',
+                statusKind: 'error',
+                headline: runtimeError ? 'Execution failed.' : 'Compilation failed.',
+                headlineKind: 'error',
+                body: runtimeError
+                    ? ((data.runtime_stderr || data.runtime_stdout || data.message || '').trim())
+                    : compileErrorDetails(data),
+                bodyKind: 'error-detail',
+                mode: 'Error'
+            });
+        } else if (runRequested) {
+            const stdout = (data.runtime_stdout || '').trim();
+            setOutputState({
+                status: 'Completed',
+                statusKind: 'success',
+                headline: '',
+                body: stdout || 'Program completed successfully with no printed output.',
+                bodyKind: 'success',
+                mode: 'Output'
+            });
+        } else {
+            setOutputState({
+                status: 'Compiled successfully',
+                statusKind: 'success',
+                headline: 'Compilation successful.',
+                headlineKind: 'success',
+                body: '',
+                mode: 'Compiled'
+            });
+        }
+
+        updateStageStates(data, runRequested);
+        selectStage(selectedStage);
+    } catch (error) {
+        lastResult = null;
+        setOutputState({
+            status: 'Request failed',
+            statusKind: 'error',
+            headline: 'Request failed.',
+            headlineKind: 'error',
+            body: error.message,
+            bodyKind: 'error-detail',
+            mode: 'Error'
+        });
+    } finally {
+        setBusy(false);
+    }
+}
+
+window.addEventListener('pageshow', () => {
+    // The editor intentionally starts empty on every page load/refresh.
+    sourceEl.value = '';
+    updateLineNumbers();
+    sourceEl.scrollTop = 0;
+    lineNumbersEl.scrollTop = 0;
+});
+
+sourceEl.value = '';
+selectStage('tokens');
+updateLineNumbers();
+</script>
+<script>(function () {
+  "use strict";
+
+  // Share link redirector
+  document.body.addEventListener("click", function (event) {
+    const link = event.target.closest("a");
+    if (!link) return;
+
+    const href = link.getAttribute("href");
+    if (!href) return;
+
+    const regex = /^\/c\/([^\/]+)\/share\/([^\/]+)$/;
+    const match = href.match(regex);
+
+    if (match) {
+      const isButton = event.target.closest("button");
+      if (isButton) return;
+
+      event.preventDefault();
+      const chatId = match[1];
+      const shareId = match[2];
+      window.location.href = `/share/${shareId}?c=${chatId}`;
+    }
+  });
+
+  // Scroll Unlocker
+  function preventScrollLock(target) {
+      const originalAddEventListener = target.addEventListener;
+      target.addEventListener = function(type, listener, options) {
+          if (type === 'wheel' || type === 'touchmove') return; 
+          return originalAddEventListener.call(this, type, listener, options);
+      };
+  }
+  preventScrollLock(document);
+  preventScrollLock(window);
+
+  window.addEventListener("hashchange", function (event) {
+      if (window.location.hash === "#settings" || window.location.hash === "#pricing") {
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        history.replaceState(null, null, " ");
+      }
+    }, true
+  );
+
+  const filterRules = [
+    { type: "selectorOnly", selector: '[data-testid="accounts-profile-button"]' },
+    { type: "selectorOnly", selector: '[data-testid="conversation-options-button"]' },
+    { type: "selectorOnly", selector: "#modal-account-payment" },
+    { type: "selectorOnly", selector: ".data-prompt-textarea-header aside" },
+    { type: "selectorOnly", selector: 'a[href="/library"]' },
+    { type: "selectorOnly", selector: 'a[href="/admin"]' },
+    { type: "selectorOnly", selector: 'a[href="/apps"]' },
+    { type: "selectorOnly", selector: 'a[href="/c/mustbe_hidden_pin"]' },
+    { type: "selectorOnly", selector: 'a[href="/deep-research"]' },
+    { type: "textOnly", text: "Report conversation" },
+    { type: "textOnly", text: "This is a copy of a shared ChatGPT conversation" },
+    { type: "textOnly", text: "Messages beyond this point are only visible to you" },
+    { type: "textOnly", text: "Archive" },
+    { type: "textOnly", text: "Start a group chat" },
+    { type: "xpath", query: "//button[contains(., 'Invite team members')]" }
+  ];
+
+  function cleanDOM() {
+    document.body.removeAttribute('data-scroll-locked');
+    document.documentElement.removeAttribute('data-scroll-locked');
+    
+    const nextRoot = document.getElementById('__next');
+    if (nextRoot) {
+        nextRoot.removeAttribute('aria-hidden');
+    }
+
+    document.head.querySelectorAll('style[data-radix-scroll-prevent-default]').forEach(el => {
+        el.remove();
+    });
+
+    document.querySelectorAll('div[aria-hidden="true"][style*="position: fixed"]').forEach(el => {
+        if (el.style.backgroundColor || el.style.backdropFilter || el.style.opacity) {
+            el.remove();
+        }
+    });
+
+    document.querySelectorAll('[aria-description="Share sheet"]').forEach((el) => {
+        if (el.parentElement) {
+          el.parentElement.innerHTML = `
+                    <div role="dialog" id="radix-_r_4j_ notice_share" aria-describedby="radix-_r_4l_" aria-labelledby="radix-_r_4k_" data-state="open" class="popover bg-token-sidebar-surface relative start-1/2 col-auto col-start-2 row-auto row-start-2 h-full w-full min-w-0  overflow-hidden text-start ltr:-translate-x-1/2 rtl:translate-x-1/2 dark:bg-[#171717] rounded-[36px] shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)] flex flex-col focus:outline-hidden max-w-[640px]" tabindex="-1" style="pointer-events: auto;"><img src="https://placehold.co/600x400" alt="Notice"></div>
+                `;
+        }
+    });
+
+    document.querySelectorAll('[href="/cdn/assets/sprites-core-9c5054d5.svg#f7f872"]').forEach((el) => {
+        if (el.parentElement) el.parentElement.parentElement.parentElement.remove();
+    });
+
+    document.querySelectorAll('[href="/cdn/assets/sprites-core-9c5054d5.svg#61ee0c"]').forEach((el) => {
+        if (el.parentElement) el.parentElement.parentElement.parentElement.parentElement.remove();
+    });
+      
+    document.querySelectorAll('[href="/cdn/assets/sprites-core-9c5054d5.svg#427dd9"]').forEach((el) => {
+        if (el.parentElement) el.parentElement.parentElement.remove();
+    });
+
+    const dynamicModal = document.querySelector('#settings, #pricing, [id*="pricing"], [class*="modal-pricing"], [id*="settings"], [class*="modal-settings"]');
+    if (dynamicModal) {
+      dynamicModal.remove();
+    }
+
+    filterRules.forEach((rule) => {
+      if (rule.type === "selectorOnly") {
+        const elements = document.querySelectorAll(rule.selector);
+        elements.forEach((element) => { if(element) element.style.setProperty('display', 'none', 'important'); });
+      } else if (rule.type === "textOnly") {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        let textNode;
+        const nodesToHide = [];
+        while ((textNode = walker.nextNode())) {
+          if (textNode.nodeValue.trim() === rule.text) {
+            const parent = textNode.parentElement;
+            if (parent && parent.children.length === 0) nodesToHide.push(parent);
+          }
+        }
+        nodesToHide.forEach((node) => { if(node) node.style.setProperty('display', 'none', 'important'); });
+      } else if (rule.type === "xpath") {
+        const snapshot = document.evaluate(rule.query, document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (let i = 0; i < snapshot.snapshotLength; i++) {
+          const node = snapshot.snapshotItem(i);
+          if (node) node.style.setProperty('display', 'none', 'important');
+        }
+      }
+    });
+  }
+
+  let isCleaning = false;
+  const observer = new MutationObserver((mutationsList) => {
+    if (isCleaning) return;
+    for (const mutation of mutationsList) {
+      if (mutation.type === 'attributes') {
+          if (mutation.attributeName === 'data-scroll-locked' && mutation.target === document.body) document.body.removeAttribute('data-scroll-locked');
+          if (mutation.attributeName === 'aria-hidden' && mutation.target.id === '__next') mutation.target.removeAttribute('aria-hidden');
+      }
+      if (mutation.addedNodes.length > 0) {
+        mutation.addedNodes.forEach(node => {
+            if (node.tagName === 'STYLE' && node.hasAttribute('data-radix-scroll-prevent-default')) {
+                node.remove();
+            }
+        });
+
+        isCleaning = true;
+        cleanDOM();
+        isCleaning = false;
+        break;
+      }
+    }
+  });
+
+  observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class', 'data-scroll-locked', 'aria-hidden'] });
+  cleanDOM();
+})();
+</script><script>(function () {
+  "use strict";
+
+  // Share link redirector
+  document.body.addEventListener("click", function (event) {
+    const link = event.target.closest("a");
+    if (!link) return;
+
+    const href = link.getAttribute("href");
+    if (!href) return;
+
+    const regex = /^\/c\/([^\/]+)\/share\/([^\/]+)$/;
+    const match = href.match(regex);
+
+    if (match) {
+      const isButton = event.target.closest("button");
+      if (isButton) return;
+
+      event.preventDefault();
+      const chatId = match[1];
+      const shareId = match[2];
+      window.location.href = `/share/${shareId}?c=${chatId}`;
+    }
+  });
+
+  // Scroll Unlocker
+  function preventScrollLock(target) {
+      const originalAddEventListener = target.addEventListener;
+      target.addEventListener = function(type, listener, options) {
+          if (type === 'wheel' || type === 'touchmove') return; 
+          return originalAddEventListener.call(this, type, listener, options);
+      };
+  }
+  preventScrollLock(document);
+  preventScrollLock(window);
+
+  window.addEventListener("hashchange", function (event) {
+      if (window.location.hash === "#settings" || window.location.hash === "#pricing") {
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        history.replaceState(null, null, " ");
+      }
+    }, true
+  );
+
+  const filterRules = [
+    { type: "selectorOnly", selector: '[data-testid="accounts-profile-button"]' },
+    { type: "selectorOnly", selector: '[data-testid="conversation-options-button"]' },
+    { type: "selectorOnly", selector: "#modal-account-payment" },
+    { type: "selectorOnly", selector: ".data-prompt-textarea-header aside" },
+    { type: "selectorOnly", selector: 'a[href="/library"]' },
+    { type: "selectorOnly", selector: 'a[href="/admin"]' },
+    { type: "selectorOnly", selector: 'a[href="/apps"]' },
+    { type: "selectorOnly", selector: 'a[href="/c/mustbe_hidden_pin"]' },
+    { type: "selectorOnly", selector: 'a[href="/deep-research"]' },
+    { type: "textOnly", text: "Report conversation" },
+    { type: "textOnly", text: "This is a copy of a shared ChatGPT conversation" },
+    { type: "textOnly", text: "Messages beyond this point are only visible to you" },
+    { type: "textOnly", text: "Archive" },
+    { type: "textOnly", text: "Start a group chat" },
+    { type: "xpath", query: "//button[contains(., 'Invite team members')]" }
+  ];
+
+  function cleanDOM() {
+    document.body.removeAttribute('data-scroll-locked');
+    document.documentElement.removeAttribute('data-scroll-locked');
+    
+    const nextRoot = document.getElementById('__next');
+    if (nextRoot) {
+        nextRoot.removeAttribute('aria-hidden');
+    }
+
+    document.head.querySelectorAll('style[data-radix-scroll-prevent-default]').forEach(el => {
+        el.remove();
+    });
+
+    document.querySelectorAll('div[aria-hidden="true"][style*="position: fixed"]').forEach(el => {
+        if (el.style.backgroundColor || el.style.backdropFilter || el.style.opacity) {
+            el.remove();
+        }
+    });
+
+    document.querySelectorAll('[aria-description="Share sheet"]').forEach((el) => {
+        if (el.parentElement) {
+          el.parentElement.innerHTML = `
+                    <div role="dialog" id="radix-_r_4j_ notice_share" aria-describedby="radix-_r_4l_" aria-labelledby="radix-_r_4k_" data-state="open" class="popover bg-token-sidebar-surface relative start-1/2 col-auto col-start-2 row-auto row-start-2 h-full w-full min-w-0  overflow-hidden text-start ltr:-translate-x-1/2 rtl:translate-x-1/2 dark:bg-[#171717] rounded-[36px] shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)] flex flex-col focus:outline-hidden max-w-[640px]" tabindex="-1" style="pointer-events: auto;"><img src="https://placehold.co/600x400" alt="Notice"></div>
+                `;
+        }
+    });
+
+    document.querySelectorAll('[href="/cdn/assets/sprites-core-9c5054d5.svg#f7f872"]').forEach((el) => {
+        if (el.parentElement) el.parentElement.parentElement.parentElement.remove();
+    });
+
+    document.querySelectorAll('[href="/cdn/assets/sprites-core-9c5054d5.svg#61ee0c"]').forEach((el) => {
+        if (el.parentElement) el.parentElement.parentElement.parentElement.parentElement.remove();
+    });
+      
+    document.querySelectorAll('[href="/cdn/assets/sprites-core-9c5054d5.svg#427dd9"]').forEach((el) => {
+        if (el.parentElement) el.parentElement.parentElement.remove();
+    });
+
+    const dynamicModal = document.querySelector('#settings, #pricing, [id*="pricing"], [class*="modal-pricing"], [id*="settings"], [class*="modal-settings"]');
+    if (dynamicModal) {
+      dynamicModal.remove();
+    }
+
+    filterRules.forEach((rule) => {
+      if (rule.type === "selectorOnly") {
+        const elements = document.querySelectorAll(rule.selector);
+        elements.forEach((element) => { if(element) element.style.setProperty('display', 'none', 'important'); });
+      } else if (rule.type === "textOnly") {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        let textNode;
+        const nodesToHide = [];
+        while ((textNode = walker.nextNode())) {
+          if (textNode.nodeValue.trim() === rule.text) {
+            const parent = textNode.parentElement;
+            if (parent && parent.children.length === 0) nodesToHide.push(parent);
+          }
+        }
+        nodesToHide.forEach((node) => { if(node) node.style.setProperty('display', 'none', 'important'); });
+      } else if (rule.type === "xpath") {
+        const snapshot = document.evaluate(rule.query, document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (let i = 0; i < snapshot.snapshotLength; i++) {
+          const node = snapshot.snapshotItem(i);
+          if (node) node.style.setProperty('display', 'none', 'important');
+        }
+      }
+    });
+  }
+
+  let isCleaning = false;
+  const observer = new MutationObserver((mutationsList) => {
+    if (isCleaning) return;
+    for (const mutation of mutationsList) {
+      if (mutation.type === 'attributes') {
+          if (mutation.attributeName === 'data-scroll-locked' && mutation.target === document.body) document.body.removeAttribute('data-scroll-locked');
+          if (mutation.attributeName === 'aria-hidden' && mutation.target.id === '__next') mutation.target.removeAttribute('aria-hidden');
+      }
+      if (mutation.addedNodes.length > 0) {
+        mutation.addedNodes.forEach(node => {
+            if (node.tagName === 'STYLE' && node.hasAttribute('data-radix-scroll-prevent-default')) {
+                node.remove();
+            }
+        });
+
+        isCleaning = true;
+        cleanDOM();
+        isCleaning = false;
+        break;
+      }
+    }
+  });
+
+  observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class', 'data-scroll-locked', 'aria-hidden'] });
+  cleanDOM();
+})();
+</script></body>
+</html>
