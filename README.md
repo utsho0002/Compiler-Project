@@ -13,9 +13,11 @@
 [![Flask](https://img.shields.io/badge/Flask-3.x-000000?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![Docker](https://img.shields.io/badge/Docker-Multi--stage%20Build-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Railway](https://img.shields.io/badge/Deploy-Railway-0B0D0E?logo=railway&logoColor=white)](https://railway.app/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-suborno--compiler--v2-success?logo=googlechrome&logoColor=white)](https://suborno-compiler-v2-production.up.railway.app/)
 [![License](https://img.shields.io/badge/License-Unspecified-lightgrey)](#license)
 
 [Overview](#overview) ·
+[Live Demo](#live-demo) ·
 [Features](#features) ·
 [Architecture](#architecture) ·
 [Language](#language-design) ·
@@ -38,6 +40,21 @@ The project ships in two forms built from the same core:
 |---|---|
 | **Native CLI compiler** | A C++17 binary built from a Flex lexer and a Bison LALR(1) parser. Reads `input.bn`, writes tokens, AST, symbol table, TAC, and generated Python to disk. |
 | **Web compiler lab** | A Flask application that runs the native binary per request and streams its *genuine* output — not a simulation — to an interactive, dependency-free browser front end. |
+
+---
+
+## Live Demo
+
+The compiler is deployed and publicly reachable on Railway:
+
+**[suborno-compiler-v2-production.up.railway.app](https://suborno-compiler-v2-production.up.railway.app/)**
+
+| Page | Link |
+|---|---|
+| Online compiler (editor + run) | <https://suborno-compiler-v2-production.up.railway.app/> |
+| Stage-by-stage pipeline visualizer | <https://suborno-compiler-v2-production.up.railway.app/#pipeline> |
+
+The pipeline visualizer walks through all six compilation stages — **Tokens → Parse Tree → Semantic → TAC → Target Code → Execution** — and renders each stage's real, live output for whatever Suborno program is compiled, exactly as described in [Architecture](#architecture).
 
 ---
 
@@ -283,11 +300,11 @@ Issues and pull requests are welcome. Please regenerate the parser/lexer (`./reg
 
 ## Contributors
 
-| Name | Student ID |
-|---|---|
-| Utsho Paul | 0182320012101370 |
-| Bithi Rani Nath Borna | 0182320012101382 |
-| Syeda Sadiatul Jannat Tushi | 0182320012101405 |
+| Name | Student ID | Contribution |
+|---|---|---|
+| Utsho Paul | 0182320012101370 | Semantic Analysis, Python Code Generation, Deployment |
+| Bithi Rani Nath Borna | 0182320012101382 | Lexer, Three-Address Code (TAC) |
+| Syeda Sadiatul Jannat Tushi | 0182320012101405 | Parser |
 
 ## License
 
