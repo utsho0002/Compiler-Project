@@ -304,7 +304,7 @@ Issues and pull requests are welcome. Please regenerate the parser/lexer (`./reg
 |---|---|---|
 | Utsho Paul | 0182320012101370 | Semantic Analysis, Python Code Generation, Deployment |
 | Bithi Rani Nath Borna | 0182320012101382 | Lexer, Three-Address Code (TAC) |
-| Syeda Sadiatul Jannat Tushi | 0182320012101405 | Parser |
+| Syeda Sadiatul Jannat Tushi | 0182320012101405 | Parser, AST |
 
 ## License
 
